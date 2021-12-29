@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>按月统计分析</title>
+<link rel="stylesheet" type="text/css" href="/static/insdep/insdep.easyui.min.css"></link>
+<link rel="stylesheet" type="text/css" href="/static/insdep/icon.css"></link>
+<link rel="stylesheet" type="text/css" href="/static/insdep/custom.css"></link>
+<script type="text/javascript" src="/static/jquery-easyui-1.5/jquery.min.js"></script>
+<script type="text/javascript" src="/static/jquery-easyui-1.5/jquery.easyui.min.js"></script>
+<script type="text/javascript" src="/static/jquery-easyui-1.5/locale/easyui-lang-zh_CN.js"></script>
+<script type="text/javascript" src="/static/highcharts4/js/highcharts.js"></script> 
+<script type="text/javascript" src="/static/js/date.js"></script>
+<script type="text/javascript">
+
+	$(document).ready(function(){
+
+		$("#s_begin").datebox("setValue",genLastMonthDayStr().substring(0,7)); // 设置去年的年月
+		$("#s_end").datebox("setValue",genTodayStr().substring(0,7)); // 设置当前年月
+
+	});
+	/* 月度日历JS代码 */
+	$(function() {
+
+		$('#s_begin').datebox({
+			//显示日趋选择对象后再触发弹出月份层的事件，初始化时没有生成月份层
+			onShowPanel: function () {
+				//触发click事件弹出月份层
+				span.trigger('click');
+				if (!tds)
+						//延时触发获取月份对象，因为上面的事件触发和对象生成有时间间隔
+					setTimeout(function() {
+						tds = p.find('div.calendar-menu-month-inner td');
+						tds.click(function(e) {
+							//禁止冒泡执行easyui给月份绑定的事件
+							e.stopPropagation();
+							//得到年份
+							var year = /\d{4}/.exec(span.html())[0] ,
+									//月份
+									//之前是这样的month = parseInt($(this).attr('abbr'), 10) + 1; 
+									month = parseInt($(this).attr('abbr'), 10);
+
+							//隐藏日期对象                     
+							$('#s_begin').datebox('hidePanel')
+									//设置日期的值
+									.datebox('setValue', year + '-' + month);
+						});
+					}, 0);
+			},
+			//配置parser，返回选择的日期
+			parser: function (s) {
+				if (!s) return new Date();
+				var arr = s.split('-');
+				return new Date(parseInt(arr[0], 10), parseInt(arr[1], 10) - 1, 1);
+			},
+			//配置formatter，只返回年月 之前是这样的d.getFullYear() + '-' +(d.getMonth()); 
+			formatter: function (d) {
+				var currentMonth = (d.getMonth()+1);
+				var currentMonthStr = currentMonth < 10 ? ('0' + currentMonth) : (currentMonth + '');
+				return d.getFullYear() + '-' + currentMonthStr;
+			}
+		});
+
+		//日期选择对象
+		var p = $('#s_begin').datebox('panel'),
+				//日期选择对象中月份
+				tds = false,
+				//显示月份层的触发控件
+				span = p.find('span.calendar-text');
+		var curr_time = new Date();
+
+		//设置前当月
+		$("#s_begin").datebox("setValue", myformatter(curr_time));
+	});
+	/* 月度日历JS代码 */
+	$(function() {
+
+		$('#s_end').datebox({
+			//显示日趋选择对象后再触发弹出月份层的事件，初始化时没有生成月份层
+			onShowPanel: function () {
+				//触发click事件弹出月份层
+				span.trigger('click');
+				if (!tds)
+						//延时触发获取月份对象，因为上面的事件触发和对象生成有时间间隔
+					setTimeout(function() {
+						tds = p.find('div.calendar-menu-month-inner td');
+						tds.click(function(e) {
+							//禁止冒泡执行easyui给月份绑定的事件
+							e.stopPropagation();
+							//得到年份
+							var year = /\d{4}/.exec(span.html())[0] ,
+									//月份
+									//之前是这样的month = parseInt($(this).attr('abbr'), 10) + 1;
+									month = parseInt($(this).attr('abbr'), 10);
+
+							//隐藏日期对象
+							$('#s_end').datebox('hidePanel')
+									//设置日期的值
+									.datebox('setValue', year + '-' + month);
+						});
+					}, 0);
+			},
+			//配置parser，返回选择的日期
+			parser: function (s) {
+				if (!s) return new Date();
+				var arr = s.split('-');
+				return new Date(parseInt(arr[0], 10), parseInt(arr[1], 10) - 1, 1);
+			},
+			//配置formatter，只返回年月 之前是这样的d.getFullYear() + '-' +(d.getMonth());
+			formatter: function (d) {
+				var currentMonth = (d.getMonth()+1);
+				var currentMonthStr = currentMonth < 10 ? ('0' + currentMonth) : (currentMonth + '');
+				return d.getFullYear() + '-' + currentMonthStr;
+			}
+		});
+
+		//日期选择对象
+		var p = $('#s_end').datebox('panel'),
+				//日期选择对象中月份
+				tds = false,
+				//显示月份层的触发控件
+				span = p.find('span.calendar-text');
+		var curr_time = new Date();
+
+		//设置前当月
+		$("#s_end").datebox("setValue", myformatter(curr_time));
+	});
+	
+	function search(){
+		$('#dg').datagrid('loadData', { total: 0, rows: [] });  
+	
+		var chart=new Highcharts.Chart({
+			chart: {
+				renderTo:'container',
+	            type: 'column',
+	            events:{
+	            	load:function(event){
+	            		var begin=$("#s_begin").datebox("getValue");
+	            		var end=$("#s_end").datebox("getValue");
+	            		// ajax请求后台加载数据
+	            		$.post("/admin/saleList/countSaleByMonth",{begin:begin,end:end},function(result){
+	            			var rows=result.rows;
+	            			var xArr=new Array();
+	            			var yArr=new Array();
+	            			for(var i=0;i<rows.length;i++){
+	            				xArr.push(rows[i].date);
+	            				yArr.push(rows[i].amountProfit);
+	            				chart.xAxis[0].categories=xArr;
+	            				chart.series[0].setData(yArr);
+	            			}
+	            			
+	            			var saleTotal=0,costTotal=0,profitTotal=0;
+	            			for(var i=0;i<rows.length;i++){
+	            				var row=rows[i];
+	            				$('#dg').datagrid('appendRow',{
+	            					date:row.date,
+	            					amountSale:row.amountSale,
+	            					amountCost:row.amountCost,
+	            					amountProfit:row.amountProfit
+	            				});		
+	            				saleTotal+=row.amountSale;
+	            				costTotal+=row.amountCost;
+	            				profitTotal+=row.amountProfit;
+	            			}
+	            			$('#dg').datagrid('appendRow',{
+	            				date:"合计",
+	            				amountSale:saleTotal,
+	            				amountCost:costTotal,
+	            				amountProfit:profitTotal
+	            			});	
+	            			
+	            		},"json");
+	            	}
+	            }
+	        },
+	        title: {
+	            text: '按月统计分析'
+	        },
+	        xAxis: {
+	        	title:'月份',
+	            categories: [
+	                'A',
+	                'B',
+	                'C'
+	            ]
+	        },
+	        yAxis: {
+	            title: {
+	                text: '销售利润'
+	            }
+	        },
+	        series: [{
+	            name: '销售利润',
+	            data: [1,2,3]
+	        }]
+		});
+		
+		
+	}
+	
+	function formatMoney(val,row){
+		return "￥"+val.toFixed(2);
+	}
+	
+	function myformatter(date){
+        var y = date.getFullYear();
+        var m = date.getMonth()+1;
+        var d = date.getDate();
+        return y+'-'+(m<10?('0'+m):m);
+    }
+
+	function myparser(s){
+        if (!s) return new Date();
+        var ss = (s.split('-'));
+        var y = parseInt(ss[0],10);
+        var m = parseInt(ss[1],10);
+        var d = parseInt(ss[2],10);
+        if (!isNaN(y) && !isNaN(m) && !isNaN(d)){
+            return new Date(y,m-1,d);
+        } else {
+            return new Date();
+        }
+    }
+	
+</script>
+</head>
+<body>
+	<div style="height: 100px;padding: 10px;border: 0px;" >
+		<fieldset style="border-color: #E7F0FF">
+ 			<legend>统计设置</legend>
+ 				<div style="padding: 5px">
+ 					统计月份：<input id="s_begin" class="easyui-datebox"    style="width:100px">
+ 					&nbsp;&nbsp;-&nbsp;&nbsp;
+ 					<input id="s_end" class="easyui-datebox"   style="width:100px">
+ 					&nbsp;&nbsp;<a href="javascript:search()" class="easyui-linkbutton" iconCls="icon-search" plain="true">搜索</a>
+ 				</div>
+ 			</form>
+ 		</fieldset>
+	</div>
+	
+	<div style="padding-left: 10px;padding-right:10px;border: 0px;height: 350px" >
+		    <div id="container"></div>
+	</div>
+	
+	<div style="padding: 10px;border: 0px;height: 385px">
+		<table id="dg"  class="easyui-datagrid" fit=true  
+		   fitColumns="true"  rownumbers="true" singleSelect="true"
+		      >
+		   <thead>
+		   	<tr>
+		   		<th field="date" width="30" align="center">统计月份</th>
+		   		<th field="amountSale" width="150" align="right" formatter="formatMoney">销售金额</th>
+		   		<th field="amountCost" width="50" align="right" formatter="formatMoney">成本金额</th>
+		   		<th field="amountProfit" width="50" align="right" formatter="formatMoney">盈利金额</th>
+		   	</tr>
+		   </thead>
+		</table>
+	</div>
+   
+	
+</body>
+</html>

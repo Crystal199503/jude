@@ -1,0 +1,11 @@
+@CHARSET "UTF-8";
+
+.custom-text{
+	border: 1px solid #ccc;
+    text-align: start;
+    margin: 0px;
+    padding-top: 0px;
+    padding-bottom: 0px;
+    height: 26px;
+    line-height: 26px;
+}
